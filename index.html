@@ -4,13 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ASQL Интервью - Тренажер с ИИ</title>
-    <!-- Vue 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- Vue Demi (Required for Pinia in global builds) -->
     <script src="https://unpkg.com/vue-demi@0.14.7/lib/index.iife.js"></script>
-    <!-- Pinia (Global Build) -->
     <script src="https://unpkg.com/pinia@2.1.7/dist/pinia.iife.js"></script>
-    <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -18,6 +14,17 @@
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        
+        /* Smooth auto-resize for textarea */
+        .auto-expand {
+            overflow: hidden;
+            min-height: 60px; /* Default h-36 */
+            transition: height 0.1s ease-out;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
@@ -26,41 +33,63 @@
         <loading-overlay v-if="store.isLoadingData && store.accessToken"></loading-overlay>
 
         <!-- Main Content -->
-        <div v-else class="max-w-2xl mx-auto py-12 px-4 sm:px-6">
+        <div v-else class="max-w-2xl mx-auto py-4 sm:py-12 px-2 sm:px-6">
             
             <!-- Login State Check -->
             <login-form v-if="!store.accessToken"></login-form>
 
             <!-- Interview UI -->
-            <div v-else class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden relative min-h-[500px]">
+            <div v-else class="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-slate-200 overflow-hidden relative min-h-[500px]">
                 
                 <!-- Burger Button -->
                 <button 
                     v-if="!isMenuOpen && store.deck_id && store.currentStep !== -1"
                     @click="isMenuOpen = true"
-                    class="absolute top-8 left-8 p-2 text-slate-400 hover:text-slate-600 z-10"
+                    class="absolute top-6 left-6 sm:top-8 sm:left-8 p-2 text-slate-400 hover:text-slate-600 z-10"
                 >
                     <i class="fas fa-bars text-xl"></i>
                 </button>
 
-                <!-- Profile Widget -->
+                <!-- Profile Widget (Main Screen) -->
                 <profile-widget v-if="!isMenuOpen"></profile-widget>
 
                 <!-- Navigation Menu Inside Card -->
-                <div v-if="isMenuOpen" class="p-8 h-full flex flex-col">
-                    <div class="flex items-center justify-between mb-8">
-                        <h2 class="text-2xl font-bold text-slate-900">Подборки вопросов</h2>
+                <div v-if="isMenuOpen" class="p-6 sm:p-8 h-full flex flex-col">
+                    <!-- Compact Profile Widget inside Menu -->
+                    <div class="mb-8 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                                    {{ store.user.firstName[0] }}{{ store.user.lastName[0] }}
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-slate-900 leading-none mb-1.5">{{ store.user.firstName }} {{ store.user.lastName }}</p>
+                                    <div class="flex items-center space-x-2 text-[9px] font-bold uppercase tracking-wider">
+                                        <span class="text-blue-600">Подписка: {{ store.user.subscriptionId || 'Базовая' }}</span>
+                                        <span class="text-slate-300">•</span>
+                                        <span class="text-slate-500">Баланс: {{ store.user.balance }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button @click="store.logout" class="text-slate-400 hover:text-red-500 p-2 transition-colors">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-slate-900">Подборки вопросов</h2>
                         <button v-if="store.deck_id" @click="isMenuOpen = false" class="text-slate-400 hover:text-slate-600 p-2">
                             <i class="fas fa-times text-xl"></i>
                         </button>
                     </div>
                     
-                    <nav class="space-y-3 flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                    <nav class="space-y-2 flex-1 overflow-y-auto pr-1 custom-scrollbar">
                         <button 
                             v-for="deck in store.decks" 
                             :key="deck.id"
                             @click="selectDeck(deck.id)"
-                            class="w-full text-left px-5 py-4 rounded-2xl text-sm font-medium border transition-all"
+                            class="w-full text-left px-4 py-3 sm:py-4 rounded-xl text-sm font-medium border transition-all"
                             :class="store.deck_id === deck.id ? 'bg-blue-50 border-blue-200 text-blue-600 shadow-sm' : 'border-slate-100 hover:bg-slate-50 text-slate-600'"
                         >
                             <div class="flex items-center justify-between">
@@ -70,18 +99,18 @@
                         </button>
                     </nav>
 
-                    <div class="mt-8 pt-6 border-t border-slate-100 space-y-3">
+                    <div class="mt-6 pt-6 border-t border-slate-100 space-y-2">
                         <button 
                             v-if="store.deck_id"
                             @click="isMenuOpen = false"
-                            class="w-full py-4 px-6 rounded-xl bg-slate-900 text-white font-bold text-sm transition-all active:scale-95"
+                            class="w-full py-3 sm:py-4 px-6 rounded-xl bg-slate-900 text-white font-bold text-sm transition-all active:scale-95"
                         >
                             Продолжить
                         </button>
                         <button 
                             v-if="store.deck_id"
                             @click="store.resetSession"
-                            class="w-full py-4 px-6 rounded-xl border border-red-100 text-red-500 font-bold text-sm hover:bg-red-50 transition-all"
+                            class="w-full py-3 sm:py-4 px-6 rounded-xl border border-red-100 text-red-500 font-bold text-sm hover:bg-red-50 transition-all"
                         >
                             Прервать сессию
                         </button>
@@ -104,22 +133,22 @@
                     <!-- Interview Questions -->
                     <div v-else class="flex flex-col h-full">
                         <!-- Header -->
-                        <div class="p-8 border-b border-slate-100 pt-8 text-center">
-                            <h1 class="text-3xl font-bold text-slate-900 tracking-tight">{{ store.activeDeckName }}</h1>
-                            <p class="text-slate-500 mt-1 font-bold text-[11px] uppercase tracking-widest">Интервью с {{ store.user.firstName }} (Баланс: {{ store.user.balance }})</p>
+                        <div class="p-6 sm:p-8 pt-8 pb-4 sm:pb-6 text-center">
+                            <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">{{ store.activeDeckName }}</h1>
+                            <p class="text-slate-400 mt-1 font-bold text-[10px] uppercase tracking-[0.2em]">Интервью в процессе</p>
                             
                             <interview-steps></interview-steps>
                         </div>
 
                         <analysis-loader></analysis-loader>
 
-                        <div class="p-8 space-y-8">
+                        <div class="px-6 sm:px-8 pb-6 sm:pb-8 pt-0 space-y-6 sm:space-y-8">
                             <question-section></question-section>
                             <answer-section></answer-section>
 
-                            <div v-if="store.showResults" class="pt-10 border-t border-slate-100 space-y-12">
-                                <results-section></results-section>
+                            <div v-if="store.showResults" id="results-anchor" class="pt-4 scroll-mt-8">
                                 <improvement-plan></improvement-plan>
+                                <results-section></results-section>
                             </div>
                         </div>
                     </div>
@@ -129,7 +158,7 @@
     </div>
 
     <script>
-        const { createApp, ref, onMounted, computed, watch } = Vue;
+        const { createApp, ref, onMounted, computed, watch, nextTick } = Vue;
         const { createPinia, defineStore } = Pinia;
 
         const ROOT_URL = 'https://n.kushedow.tech/webhook/asql/interview/';
@@ -147,7 +176,7 @@
                     { id: "4", name: "Управление командой" },
                     { id: "5", name: "Профессиональное развитие" }
                 ],
-                currentStep: 0, // 0 - intro, -1 - final results
+                currentStep: 0,
                 userAnswer: "",
                 userVoiceAnswer: null,
                 inputFormat: 'text',
@@ -159,7 +188,7 @@
                 questions: [],
                 checklist: [],
                 growthPlan: { keep: [], improve: [] },
-                results: [] // Хранит { questionId, score, checklist: [] }
+                results: []
             }),
             getters: {
                 currentQuestionObj: (state) => state.questions[state.currentStep - 1] || {},
@@ -202,7 +231,7 @@
                     try {
                         const data = await this._fetchAuthorized(`questions?deck=${this.deck_id}`);
                         this.questions = Array.isArray(data) ? data : [];
-                        this.results = []; // Очищаем старые результаты при смене колоды
+                        this.results = []; 
                         this.updateChecklist();
                     } catch (error) { console.error(error); } finally { this.isLoadingData = false; }
                 },
@@ -223,6 +252,15 @@
                         await this.processResults();
                         this.progress = 100;
                         await this.fetchProfile();
+                        
+                        // Scroll to results section after small delay to ensure rendering
+                        nextTick(() => {
+                            setTimeout(() => {
+                                const el = document.getElementById('results-anchor');
+                                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }, 100);
+                        });
+
                     } catch (error) { 
                         console.error(error); 
                         alert("Ошибка анализа. Попробуйте снова.");
@@ -246,7 +284,6 @@
                     }, 'POST');
 
                     if (data) {
-                        // Если был голосовой ввод, сохраняем текстовую расшифровку в userAnswer
                         if (this.inputFormat === 'voice' && data.answer) {
                             this.userAnswer = data.answer;
                         }
@@ -262,7 +299,6 @@
                             this.growthPlan = data.growth_plan || { keep: [], improve: [] };
                             this.score = Math.round((data.review.reduce((acc, curr) => acc + (parseFloat(curr.result) || 0), 0) / data.review.length) * 100);
 
-                            // Сохраняем результат текущего вопроса в историю
                             const resultIdx = this.results.findIndex(r => r.questionId === current.question_id);
                             const resultData = {
                                 questionId: current.question_id,
@@ -281,8 +317,10 @@
                     if (this.currentStep < this.questions.length) { 
                         this.currentStep++; 
                         this.updateChecklist(); 
+                        // Scroll back to top of the card
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                     } else { 
-                        this.currentStep = -1; // Переход к экрану финальных результатов
+                        this.currentStep = -1; 
                     }
                 }
             }
@@ -300,42 +338,39 @@
         const InstructionStep = {
             setup() {
                 const store = useInterviewStore();
-                return { startInterview: () => { store.currentStep = 1; store.updateChecklist(); } };
+                return { 
+                    store,
+                    startInterview: () => { store.currentStep = 1; store.updateChecklist(); } 
+                };
             },
             template: `
-                <div class="p-8 h-full flex flex-col items-center justify-center space-y-10 min-h-[500px]">
+                <div class="p-6 sm:p-8 h-full flex flex-col items-center justify-center space-y-8 sm:space-y-10 min-h-[500px]">
                     <div class="text-center space-y-4">
                         <div class="flex justify-center">
-                            <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mb-2">
-                                <i class="fas fa-lightbulb text-2xl"></i>
+                            <div class="w-14 h-14 sm:w-16 sm:h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mb-2">
+                                <i class="fas fa-play text-2xl"></i>
                             </div>
                         </div>
                         <div class="space-y-2">
-                            <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Подготовка к интервью</h2>
-                            <p class="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">Инструкции перед началом сессии.</p>
+                            <h2 class="text-2xl font-bold text-slate-900 tracking-tight">{{ store.activeDeckName }}</h2>
+                            <p class="text-[11px] text-slate-500 leading-relaxed max-w-xs mx-auto uppercase tracking-wider font-bold">Подготовка</p>
                         </div>
                     </div>
-                    <div class="w-full max-w-sm space-y-6">
-                        <div v-for="item in steps" :key="item.icon" class="flex items-center space-x-4">
-                            <div :class="['w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full', item.bg, item.color]">
-                                <i :class="['fas', item.icon, 'text-lg']"></i>
-                            </div>
-                            <p class="text-sm text-slate-700 font-medium">{{ item.text }}</p>
-                        </div>
+                    
+                    <div class="w-full max-w-md bg-slate-50/50 rounded-2xl p-6 sm:p-8 border border-slate-100">
+                        <p class="text-sm text-slate-600 leading-relaxed text-center sm:text-left">
+                            Тренировочное собеседование сейчас начнется. 
+                            <br><br>
+                            Вам будет предложено <b>{{ store.questions.length }}</b> вопросов. Вы можете ответить на вопрос текстом или голосом. Когда вы ответите, мы обработаем ваш ответ и дадим обратную связь. После этого вы сможете улучшить свой ответ или перейти к следующему вопросу. 
+                            <br><br>
+                            В конце вы увидите общую статистику по проведенному собеседованию с сильными и слабыми сторонами. Тренировка займет от 15 до 30 минут.
+                        </p>
                     </div>
-                    <button @click="startInterview" class="w-full max-w-md bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-[0.98]">
+
+                    <button @click="startInterview" class="w-full max-w-md bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 sm:py-4 rounded-xl  transition-all active:scale-[0.98]">
                         Начать
                     </button>
-                </div>`,
-            data() {
-                return {
-                    steps: [
-                        { icon: 'fa-keyboard', bg: 'bg-blue-50', color: 'text-blue-600', text: 'Текст или голос для ответа' },
-                        { icon: 'fa-robot', bg: 'bg-purple-50', color: 'text-purple-600', text: 'ИИ-анализ по чек-листу' },
-                        { icon: 'fa-chart-line', bg: 'bg-emerald-50', color: 'text-emerald-600', text: 'Мгновенный фидбек' }
-                    ]
-                }
-            }
+                </div>`
         };
 
         const ResultStep = {
@@ -346,18 +381,18 @@
                 return { store, restart, changeDeck };
             },
             template: `
-                <div class="p-8 space-y-8 flex flex-col h-full animate-in fade-in duration-500">
+                <div class="p-6 sm:p-8 space-y-6 sm:space-y-8 flex flex-col h-full animate-in fade-in duration-500">
                     <div class="text-center space-y-3">
-                        <div class="inline-flex items-center justify-center w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full mb-2">
+                        <div class="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-emerald-50 text-emerald-600 rounded-full mb-2">
                             <i class="fas fa-trophy text-2xl"></i>
                         </div>
-                        <h2 class="text-3xl font-bold text-slate-900 tracking-tight">Поздравляем!</h2>
-                        <p class="text-sm text-slate-500">Вы успешно завершили подборку <b>"{{ store.activeDeckName }}"</b></p>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Поздравляем!</h2>
+                        <p class="text-xs sm:text-sm text-slate-500">Вы успешно завершили подборку <b>"{{ store.activeDeckName }}"</b></p>
                     </div>
 
-                    <div class="space-y-4 flex-1 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
+                    <div class="space-y-3 sm:space-y-4 flex-1 overflow-y-auto max-h-[380px] pr-2 custom-scrollbar">
                         <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Результаты по вопросам</h3>
-                        <div v-for="(res, idx) in store.results" :key="idx" class="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-3">
+                        <div v-for="(res, idx) in store.results" :key="idx" class="p-4 rounded-xl border border-slate-100 bg-slate-50/50 space-y-3">
                             <div class="flex justify-between items-start gap-4">
                                 <p class="text-sm font-semibold text-slate-800 leading-snug">{{ idx + 1 }}. {{ res.questionText }}</p>
                                 <span class="px-2 py-1 rounded-lg bg-white border border-slate-100 text-xs font-black" 
@@ -376,10 +411,10 @@
                     </div>
 
                     <div class="pt-6 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button @click="restart" class="py-4 px-6 rounded-xl bg-slate-900 text-white font-bold text-sm transition-all hover:bg-black active:scale-95">
+                        <button @click="restart" class="py-3 sm:py-4 px-6 rounded-xl bg-slate-900 text-white font-bold text-sm transition-all hover:bg-black active:scale-95">
                             <i class="fas fa-redo-alt mr-2 text-xs opacity-70"></i> Еще раз
                         </button>
-                        <button @click="changeDeck" class="py-4 px-6 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm transition-all hover:bg-slate-50 active:scale-95">
+                        <button @click="changeDeck" class="py-3 sm:py-4 px-6 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm transition-all hover:bg-slate-50 active:scale-95">
                             <i class="fas fa-layer-group mr-2 text-xs opacity-70"></i> Другая подборка
                         </button>
                     </div>
@@ -406,20 +441,20 @@
                 return { email, password, handleLogin, isLoggingIn, errorMessage };
             },
             template: `
-                <div class="bg-white rounded-3xl shadow-xl border border-slate-200 p-8 sm:p-12 space-y-8">
+                <div class="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-slate-200 p-6 sm:p-12 space-y-6 sm:space-y-8">
                     <div class="text-center space-y-2">
-                        <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto text-blue-600 mb-4">
+                        <div class="w-14 h-14 sm:w-16 sm:h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto text-blue-600 mb-4">
                             <i class="fas fa-shield-halved text-2xl"></i>
                         </div>
-                        <h2 class="text-3xl font-bold text-slate-900 tracking-tight">Вход</h2>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Вход в систему</h2>
                     </div>
                     <div v-if="errorMessage" class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-xs font-medium flex items-center">
                         <i class="fas fa-exclamation-circle mr-2"></i> {{ errorMessage }}
                     </div>
                     <form @submit.prevent="handleLogin" class="space-y-4">
-                        <input v-model="email" type="email" placeholder="Email" required class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none text-sm" />
-                        <input v-model="password" type="password" placeholder="Пароль" required class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none text-sm" />
-                        <button type="submit" :disabled="isLoggingIn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl flex justify-center">
+                        <input v-model="email" type="email" placeholder="Email" required class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none text-sm transition-all focus:border-blue-400" />
+                        <input v-model="password" type="password" placeholder="Пароль" required class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none text-sm transition-all focus:border-blue-400" />
+                        <button type="submit" :disabled="isLoggingIn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 sm:py-4 rounded-xl flex justify-center ">
                             <span v-if="!isLoggingIn">Войти</span>
                             <i v-else class="fas fa-circle-notch fa-spin"></i>
                         </button>
@@ -428,16 +463,16 @@
         };
 
         const ProfileWidget = {
-            template: `<div class="absolute top-8 right-8">
-                <button @click="store.logout" class="text-slate-300 hover:text-red-400 p-2"><i class="fas fa-sign-out-alt text-lg"></i></button>
+            template: `<div class="absolute top-6 right-6 sm:top-8 sm:right-8">
+                <button @click="store.logout" class="text-slate-300 hover:text-red-400 p-2 transition-colors"><i class="fas fa-sign-out-alt text-lg"></i></button>
             </div>`,
             setup() { return { store: useInterviewStore() }; }
         };
 
         const InterviewSteps = {
-            template: `<nav class="mt-6 px-4 flex items-center justify-center space-x-2">
-                <div v-for="n in store.questions.length" :key="n" class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold"
-                    :class="[ n === store.currentStep ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : n < store.currentStep ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400' ]">
+            template: `<nav class="mt-4 sm:mt-5 px-4 flex items-center justify-center space-x-2">
+                <div v-for="n in store.questions.length" :key="n" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-[10px] sm:text-xs font-bold"
+                   :class="[ n === store.currentStep ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : n < store.currentStep ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400' ]">
                     {{ n }}
                 </div>
             </nav>`,
@@ -445,10 +480,10 @@
         };
 
         const AnalysisLoader = {
-            template: `<div v-if="store.isAnalyzing" class="border-b border-slate-100 bg-blue-50/30 p-4">
+            template: `<div v-if="store.isAnalyzing" class="bg-blue-50/30 p-4">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-[10px] font-bold text-blue-600 uppercase tracking-[0.2em] animate-pulse">ИИ анализирует...</span>
-                    <span class="text-xs font-mono text-blue-600">{{ store.progress }}%</span>
+                    <span class="text-[10px] font-bold text-blue-600 uppercase tracking-[0.2em] animate-pulse">Анализ ответов...</span>
+                    <span class="text-[10px] font-mono text-blue-600">{{ store.progress }}%</span>
                 </div>
                 <div class="w-full bg-slate-200 rounded-full h-1 overflow-hidden">
                     <div class="bg-blue-600 h-full transition-all duration-300" :style="{ width: store.progress + '%' }"></div>
@@ -458,51 +493,87 @@
         };
 
         const QuestionSection = {
-            template: `<section class="text-center min-h-[60px] flex items-center justify-center"><p class="text-xl font-semibold text-slate-900 leading-tight">"{{ store.currentQuestionText }}"</p></section>`,
+            template: `<section class="text-center min-h-[50px] sm:min-h-[60px] flex items-center justify-center py-2"><p class="text-lg sm:text-xl font-semibold text-slate-900 leading-tight">{{ store.currentQuestionText }}</p></section>`,
             setup() { return { store: useInterviewStore() }; }
         };
 
         const AnswerSection = {
             template: `
-                <section class="space-y-6">
+                <section class="space-y-4 sm:space-y-6">
                     <div class="flex space-x-1 bg-slate-100 p-1 rounded-xl">
-                        <button @click="store.inputFormat = 'text'" class="flex-1 py-2 text-[10px] font-bold rounded-lg uppercase transition-all" :class="store.inputFormat === 'text' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'">Текст</button>
-                        <button @click="store.inputFormat = 'voice'" class="flex-1 py-2 text-[10px] font-bold rounded-lg uppercase transition-all" :class="store.inputFormat === 'voice' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'">Голос</button>
+                        <button @click="store.inputFormat = 'text'" class="flex-1 py-1.5 sm:py-2 text-[10px] font-bold rounded-lg uppercase transition-all" :class="store.inputFormat === 'text' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'">Текстом</button>
+                        <button @click="store.inputFormat = 'voice'" class="flex-1 py-1.5 sm:py-2 text-[10px] font-bold rounded-lg uppercase transition-all" :class="store.inputFormat === 'voice' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'">Голосом</button>
                     </div>
 
-                    <div v-if="store.inputFormat === 'text'" class="space-y-4">
-                        <textarea v-model="store.userAnswer" :disabled="store.isAnalyzing" placeholder="Ваш ответ..." class="w-full h-44 p-5 rounded-2xl border border-slate-200 outline-none transition-all resize-none text-slate-700 bg-slate-50/50 text-sm leading-relaxed focus:border-blue-400"></textarea>
+                    <div v-if="store.inputFormat === 'text'" class="space-y-2">
+                        <textarea 
+                            ref="textInput"
+                            v-model="store.userAnswer" 
+                            :disabled="store.isAnalyzing" 
+                            @input="handleInput"
+                            placeholder="Введите ваш ответ здесь..." 
+                            class="auto-expand w-full p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 outline-none transition-all resize-none text-slate-700 bg-slate-50/30 text-sm leading-relaxed focus:border-blue-400"
+                        ></textarea>
                     </div>
 
-                    <div v-else class="py-12 flex flex-col items-center justify-center rounded-2xl border border-dashed" :class="store.userVoiceAnswer && !isRecording ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-50/50 border-slate-300'">
-                        <div v-if="!isRecording && !store.userVoiceAnswer" class="text-center space-y-4">
-                            <button @click="startRecording" class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto"><i class="fas fa-microphone text-2xl"></i></button>
-                            <p class="text-xs font-medium text-slate-500">Нажмите для записи</p>
+                    <div v-else class="py-8 sm:py-12 flex flex-col items-center justify-center rounded-xl sm:rounded-2xl border border-dashed" :class="store.userVoiceAnswer && !isRecording ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-50/30 border-slate-300'">
+                        <div v-if="!isRecording && !store.userVoiceAnswer" class="text-center space-y-3 sm:space-y-4">
+                            <button @click="startRecording" class="w-14 h-14 sm:w-16 sm:h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto transition-transform active:scale-90"><i class="fas fa-microphone text-xl sm:text-2xl"></i></button>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Нажмите для записи</p>
                         </div>
-                        <div v-if="isRecording" class="text-center space-y-4 w-full px-12">
-                            <button @click="stopRecording" class="w-16 h-16 bg-red-500 text-white rounded-full flex items-center justify-center mx-auto animate-pulse"><i class="fas fa-stop text-xl"></i></button>
+                        <div v-if="isRecording" class="text-center space-y-3 sm:space-y-4 w-full px-8">
+                            <button @click="stopRecording" class="w-14 h-14 sm:w-16 sm:h-16 bg-red-500 text-white rounded-full flex items-center justify-center mx-auto animate-pulse"><i class="fas fa-stop text-lg sm:text-xl"></i></button>
                             <p class="text-[10px] font-bold text-red-500 uppercase tracking-widest">Запись: {{ recordingTime }}с</p>
                         </div>
                         <div v-if="store.userVoiceAnswer && !isRecording" class="text-center space-y-3 px-6 w-full">
-                            <p class="text-[10px] font-bold text-emerald-700 uppercase">Голос записан</p>
-                            <button @click="store.userVoiceAnswer = null" class="text-[10px] font-bold text-slate-400 hover:text-red-500 uppercase"><i class="fas fa-undo-alt mr-1"></i> Перезаписать</button>
+                            <p class="text-[10px] font-bold text-emerald-700 uppercase">Голос зафиксирован</p>
+                            <button @click="store.userVoiceAnswer = null" class="text-[10px] font-bold text-slate-400 hover:text-red-500 uppercase transition-colors"><i class="fas fa-undo-alt mr-1"></i> Перезаписать</button>
                         </div>
                     </div>
 
-                    <div v-if="store.showResults && store.inputFormat === 'voice' && store.userAnswer" class="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Распознанный ответ:</p>
-                         <p class="text-sm text-slate-600 italic leading-relaxed">"{{ store.userAnswer }}"</p>
+                    <div v-if="store.showResults && store.inputFormat === 'voice' && store.userAnswer" class="p-4 bg-slate-50 rounded-xl border border-slate-100 border-dashed">
+                         <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Расшифровка:</p>
+                         <p class="text-xs sm:text-sm text-slate-600 italic leading-relaxed">"{{ store.userAnswer }}"</p>
                     </div>
 
-                    <button @click="store.analyzeAnswer" :disabled="isReadyToAnalyze" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center space-x-2 active:scale-[0.98]">
-                        <span>Анализ</span>
-                        <i v-if="!store.isAnalyzing" class="fas fa-sparkles text-sm"></i>
-                        <i v-else class="fas fa-circle-notch fa-spin text-sm"></i>
+                    <button 
+                        @click="store.analyzeAnswer" 
+                        :disabled="isReadyToAnalyze" 
+                        class="w-full font-bold py-3 sm:py-4 rounded-xl transition-all flex items-center justify-center space-x-2 active:scale-[0.98]"
+                        :class="store.showResults 
+                            ? 'bg-white border-2 border-slate-200 text-slate-600 hover:bg-slate-50' 
+                            : 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-slate-100 disabled:text-slate-400 shadow-md'"
+                    >
+                        <span class="text-sm">{{ store.showResults ? 'Отправить повторно' : 'Отправить ответ' }}</span>
+                        <i v-if="store.isAnalyzing" class="fas fa-circle-notch fa-spin text-xs"></i>
                     </button>
                 </section>`,
             setup() {
-                const store = useInterviewStore(); const isRecording = ref(false); const recordingTime = ref(0);
-                const mediaRecorder = ref(null); const timerInterval = ref(null);
+                const store = useInterviewStore(); 
+                const isRecording = ref(false); 
+                const recordingTime = ref(0);
+                const mediaRecorder = ref(null); 
+                const timerInterval = ref(null);
+                const textInput = ref(null);
+
+                const resizeTextarea = () => {
+                    if (textInput.value) {
+                        textInput.value.style.height = 'auto';
+                        textInput.value.style.height = textInput.value.scrollHeight + 'px';
+                    }
+                };
+
+                const handleInput = () => {
+                    resizeTextarea();
+                };
+
+                // Watch for step changes or format changes to reset height
+                watch([() => store.currentStep, () => store.inputFormat], () => {
+                    nextTick(() => {
+                        if (store.inputFormat === 'text') resizeTextarea();
+                    });
+                });
+
                 const startRecording = async () => {
                     try {
                         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -518,50 +589,65 @@
                         };
                         mediaRecorder.value.start(); isRecording.value = true; recordingTime.value = 0;
                         timerInterval.value = setInterval(() => { recordingTime.value++; if (recordingTime.value >= 45) stopRecording(); }, 1000);
-                    } catch (err) { alert("Нет доступа к микрофону"); }
+                    } catch (err) { alert("Микрофон недоступен"); }
                 };
+
                 const stopRecording = () => { if (mediaRecorder.value?.state !== 'inactive') mediaRecorder.value.stop(); isRecording.value = false; clearInterval(timerInterval.value); };
+                
                 const isReadyToAnalyze = computed(() => store.isAnalyzing || (store.inputFormat === 'text' ? (store.userAnswer || "").length < 5 : !store.userVoiceAnswer));
-                return { store, isRecording, recordingTime, startRecording, stopRecording, isReadyToAnalyze };
+                
+                return { store, isRecording, recordingTime, startRecording, stopRecording, isReadyToAnalyze, textInput, handleInput };
             }
+        };
+
+        const ImprovementPlan = {
+            template: `
+                <section class="space-y-4">
+                    <div class="grid grid-cols-1 gap-6 sm:gap-8">
+                        <div v-for="type in ['keep', 'improve']" :key="type" class="space-y-4">
+                            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{{ type === 'keep' ? 'Сильные стороны' : 'Рекомендации' }}</h3>
+                            <ul class="space-y-3">
+                                <li v-for="item in store.growthPlan[type]" class="text-xs sm:text-sm text-slate-500 leading-relaxed flex items-start">
+                                    <span :class="['mr-3 mt-1 flex-shrink-0 w-1.5 h-1.5 rounded-full', type === 'keep' ? 'bg-emerald-500' : 'bg-amber-500']"></span> 
+                                    {{ item }}
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>`,
+            setup() { return { store: useInterviewStore() }; }
         };
 
         const ResultsSection = {
             setup() { const store = useInterviewStore(); const expanded = ref(null); return { store, expanded, toggle: (i) => expanded.value = expanded.value === i ? null : i }; },
             template: `
-                <section>
-                    <div class="flex items-baseline justify-between mb-8">
-                        <h2 class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Результат</h2>
-                        <span class="text-2xl font-black text-slate-900 tracking-tighter">{{ store.score }}%</span>
+                <section class="pb-6">
+                    <div class="flex items-baseline justify-between mb-6">
+                        <h2 class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Детали чек-листа</h2>
+                        <div class="text-right">
+                             <span class="text-2xl font-black text-slate-900 tracking-tighter">{{ store.score }}%</span>
+                             <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Общий балл</p>
+                        </div>
                     </div>
-                    <div class="divide-y divide-slate-100">
+                    <div class="divide-y divide-slate-50">
                         <div v-for="(point, i) in store.checklist" :key="i" class="py-3">
                             <button @click="toggle(i)" class="w-full flex items-center justify-between text-left outline-none">
-                                <span class="text-sm font-medium" :class="point.passed ? 'text-slate-900' : 'text-slate-400'">{{ point.label }}</span>
-                                <span class="text-[10px] font-bold" :class="point.passed ? 'text-emerald-500' : 'text-slate-300'">{{ Math.round(point.resultValue * 100) }}%</span>
+                                <span class="text-xs sm:text-sm font-medium" :class="point.passed ? 'text-slate-900' : 'text-slate-400'">{{ point.label }}</span>
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-[10px] font-bold" :class="point.passed ? 'text-emerald-500' : 'text-slate-300'">{{ Math.round(point.resultValue * 100) }}%</span>
+                                    <i class="fas fa-chevron-down text-[10px] text-slate-300 transition-transform" :class="expanded === i ? 'rotate-180' : ''"></i>
+                                </div>
                             </button>
                             <div v-show="expanded === i" class="pt-2 pb-1 transition-all duration-300"><p class="text-xs text-slate-500 leading-relaxed">{{ point.description }}</p></div>
                         </div>
                     </div>
-                </section>`
-        };
-
-        const ImprovementPlan = {
-            template: `
-                <section class="space-y-10">
-                    <div class="grid grid-cols-1 gap-8">
-                        <div v-for="type in ['keep', 'improve']" :key="type" class="space-y-4">
-                            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{{ type === 'keep' ? 'Плюсы' : 'К доработке' }}</h3>
-                            <ul class="space-y-2">
-                                <li v-for="item in store.growthPlan[type]" class="text-xs text-slate-500 leading-relaxed flex items-start"><span :class="['mr-2', type === 'keep' ? 'text-emerald-500' : 'text-amber-500']">•</span> {{ item }}</li>
-                            </ul>
-                        </div>
+                    
+                    <div class="mt-10">
+                        <button @click="store.nextStep" class="w-full bg-slate-900 hover:bg-black text-white font-bold py-3 sm:py-4 rounded-xl transition-all active:scale-[0.98]">
+                            {{ store.currentStep === store.questions.length ? 'Завершить сессию' : 'К следующему вопросу' }}
+                        </button>
                     </div>
-                    <button @click="store.nextStep" class="w-full bg-slate-900 hover:bg-black text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-[0.98]">
-                        {{ store.currentStep === store.questions.length ? 'Завершить' : 'Следующий вопрос' }}
-                    </button>
-                </section>`,
-            setup() { return { store: useInterviewStore() }; }
+                </section>`
         };
 
         const app = createApp({
@@ -574,11 +660,17 @@
             }
         });
 
-        app.component('loading-overlay', LoadingOverlay); app.component('instruction-step', InstructionStep); app.component('result-step', ResultStep);
-        app.component('login-form', LoginForm); app.component('profile-widget', ProfileWidget);
-        app.component('interview-steps', InterviewSteps); app.component('analysis-loader', AnalysisLoader);
-        app.component('question-section', QuestionSection); app.component('answer-section', AnswerSection);
-        app.component('results-section', ResultsSection); app.component('improvement-plan', ImprovementPlan);
+        app.component('loading-overlay', LoadingOverlay); 
+        app.component('instruction-step', InstructionStep); 
+        app.component('result-step', ResultStep);
+        app.component('login-form', LoginForm); 
+        app.component('profile-widget', ProfileWidget);
+        app.component('interview-steps', InterviewSteps); 
+        app.component('analysis-loader', AnalysisLoader);
+        app.component('question-section', QuestionSection); 
+        app.component('answer-section', AnswerSection);
+        app.component('results-section', ResultsSection); 
+        app.component('improvement-plan', ImprovementPlan);
         app.use(createPinia()); app.mount('#app');
     </script>
 </body>
